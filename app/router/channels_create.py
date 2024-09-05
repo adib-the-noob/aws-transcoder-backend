@@ -16,7 +16,7 @@ router = APIRouter(
     tags=["channels"]
 )
 
-@router.post("/create", response_model=ChannelModel)
+@router.post("/create", response_model=None)
 async def create_channel(
     channel: CreateChannelModel,
     current_user: dict = Depends(get_current_user)
@@ -31,7 +31,6 @@ async def create_channel(
     channel.owner_id = str(user['_id'])
     _ = db_dependency.channels.insert_one({
         **channel.model_dump(),
-        'id': str(uuid.uuid4()),
         'owner_id': str(user['_id'])
     })
     channel_info = db_dependency.channels.find_one({"name": channel.name})
@@ -47,7 +46,7 @@ async def create_channel(
     )
 
 
-@router.get("/list-channels", response_model=ChannelModel)
+@router.get("/list-channels", response_model=None)
 async def list_channels(
     user: dict = Depends(get_current_user)
 ):
