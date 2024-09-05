@@ -21,12 +21,14 @@ def authenticate_user(email: str, password: str):
 
 # jwt
 from fastapi import Depends, status, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer 
 from typing import Annotated
 
 from datetime import datetime, timedelta, timezone
 from jwt import PyJWTError, decode, encode
 from config import base_config
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user-auth/token")
 
 def create_access_token(
     data: dict,
@@ -42,7 +44,7 @@ def create_access_token(
     encoded_jwt = encode(
         to_encode, base_config.SECRET_KEY, algorithm=base_config.ALGORITHM
     )
-    
+
     return {
         "access_token": encoded_jwt,
         "token_type": "bearer"
@@ -57,7 +59,7 @@ def decode_access_token(token: str):
     
     
 def get_current_user(
-    token: Annotated[str, OAuth2PasswordBearer(tokenUrl="/user-auth/login")]
+    token: str = Depends(oauth2_scheme)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
