@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from db import db_dependency
 from utils.auth_utils import get_current_user
-from aws.s3_uploader import s3_client
+
 
 from schemas.video_schema import UploadVideoModel
 
