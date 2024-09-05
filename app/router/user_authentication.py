@@ -46,26 +46,6 @@ async def register_user(user: UserRegisterSchema):
         }
     )
     
-    
-# @router.post("/login", response_model=None)
-# async def login_user(
-#     form: Annotated[OAuth2PasswordRequestForm, None] = Depends(),
-# ):
-#     user_info = authenticate_user(form.username, form.password)
-#     if user_info:
-#         access_token = create_access_token(data={
-#             'sub': str(user_info['_id']),
-#             'email': user_info['email']
-#         })
-#         return JSONResponse(
-#             access_token,
-#             status_code=status.HTTP_200_OK        
-#         )
-#     return JSONResponse(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         content={"message": "Invalid credentials"}
-#     )
-    
 
 @router.get("/me", response_model=None)
 async def get_me(current_user = Depends(get_current_user)):

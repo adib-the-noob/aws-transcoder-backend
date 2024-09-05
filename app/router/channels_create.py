@@ -16,7 +16,7 @@ router = APIRouter(
     tags=["channels"]
 )
 
-@router.post("/create", response_model=None)
+@router.post("/create", response_model=ChannelModel)
 async def create_channel(
     channel: CreateChannelModel,
     current_user: dict = Depends(get_current_user)
@@ -31,8 +31,8 @@ async def create_channel(
     channel.owner_id = str(user['_id'])
     _ = db_dependency.channels.insert_one({
         **channel.model_dump(),
-        'id': uuid.uuid4(),
-        'owner_id': user['_id']
+        'id': str(uuid.uuid4()),
+        'owner_id': str(user['_id'])
     })
     channel_info = db_dependency.channels.find_one({"name": channel.name})
     
@@ -45,4 +45,23 @@ async def create_channel(
             }
         }
     )
+
+
+@router.get("/list-channels", response_model=ChannelModel)
+async def list_channels(
+    user: dict = Depends(get_current_user)
+):
+    channels = db_dependency.channels.find({"owner_id": str(user['sub'])})
+    channel_list = []
+    for channel in channels:
+        channel_list.append({
+            'id': str(channel['_id']),
+            'name': channel['name'],
+            'description': channel['description']
+        })
+    return JSONResponse({
+        'message': 'Channels fetched successfully',
+        'data': channel_list
+    })
+    
     
