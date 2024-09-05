@@ -2,7 +2,8 @@ from fastapi import FastAPI
 
 from router import (
     user_authentication,
-    channels_create
+    channels_create,
+    video_uploader
 )
 
 app = FastAPI()
@@ -13,3 +14,4 @@ async def root():
 
 app.include_router(user_authentication.router)
 app.include_router(channels_create.router)
+app.include_router(video_uploader.router)

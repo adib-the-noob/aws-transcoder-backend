@@ -8,7 +8,6 @@ from utils.auth_utils import (
 )
 from schemas.channel_schema import (
     CreateChannelModel,
-    ChannelModel
 )
 
 router = APIRouter(
@@ -19,19 +18,19 @@ router = APIRouter(
 @router.post("/create", response_model=None)
 async def create_channel(
     channel: CreateChannelModel,
-    current_user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user)
 ):
-    user = db_dependency.users.find_one({"email": current_user['email']})
     if not user:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "User not found"}
         )
 
-    channel.owner_id = str(user['_id'])
+    owner_id = str(user['sub'])
     _ = db_dependency.channels.insert_one({
-        **channel.model_dump(),
-        'owner_id': str(user['_id'])
+        'name': channel.name,
+        'description': channel.description,
+        'owner_id': owner_id
     })
     channel_info = db_dependency.channels.find_one({"name": channel.name})
     
