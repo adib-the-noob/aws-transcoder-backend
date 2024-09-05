@@ -7,9 +7,9 @@ from schemas.user_auth_schema import (
 )
 from utils.auth_utils import (
     get_password_hash,
-    verify_password,
     authenticate_user,
-    create_access_token
+    create_access_token,
+    get_current_user
 )
 
 from bson import ObjectId
@@ -62,3 +62,15 @@ async def login_user(user : UserLogin):
         content={"message": "Invalid credentials"}
     )
     
+
+@router.get("/me", response_model=None)
+async def get_me(current_user = Depends(get_current_user)):
+    return JSONResponse(
+        {
+            'message': 'User info fetched successfully',
+            'data': {
+                'id': current_user['sub'],
+                'email': current_user['email']
+            }
+        }
+    )

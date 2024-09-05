@@ -20,6 +20,9 @@ def authenticate_user(email: str, password: str):
 
 
 # jwt
+from fastapi import Depends, status, HTTPException
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from typing import Annotated
 
 from datetime import datetime, timedelta, timezone
 from jwt import PyJWTError, decode, encode
@@ -33,13 +36,13 @@ def create_access_token(
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     
-    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=120)
     to_encode.update({"exp": expire})
     
     encoded_jwt = encode(
         to_encode, base_config.SECRET_KEY, algorithm=base_config.ALGORITHM
     )
-    print(encoded_jwt)
+    
     return {
         "access_token": encoded_jwt,
         "token_type": "bearer"
@@ -51,3 +54,18 @@ def decode_access_token(token: str):
         return payload
     except PyJWTError:
         return None
+    
+    
+def get_current_user(
+    token: Annotated[str, OAuth2PasswordBearer(tokenUrl="/user-auth/login")]
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    payload = decode_access_token(token)
+    if payload is None:
+        raise credentials_exception
+    return payload
