@@ -49,7 +49,7 @@ async def upload_video_on_s3(
         file = video.video_file
         file_name = f"{uuid.uuid4()}__{file.filename}"
         response = s3_client.create_multipart_upload(
-            Bucket='adib-source-bucket',
+            Bucket='transcoder-raw-bucket',
             Key=file_name,
             ContentType=file.content_type
         )
@@ -65,7 +65,7 @@ async def upload_video_on_s3(
             if not chunk:
                 break
             part = s3_client.upload_part(
-                Bucket='adib-source-bucket',
+                Bucket='transcoder-raw-bucket',
                 Key=file_name,
                 PartNumber=part_number,
                 UploadId=upload_id,
@@ -78,7 +78,7 @@ async def upload_video_on_s3(
             part_number += 1    
             
         s3_client.complete_multipart_upload(
-            Bucket='adib-source-bucket',
+            Bucket='transcoder-raw-bucket',
             Key=file_name,
             UploadId=upload_id,
             MultipartUpload={
@@ -88,13 +88,13 @@ async def upload_video_on_s3(
         
         video_info.update({
             'file_name': file_name,
-            "s3_url": f"https://adib-source-bucket.s3.amazonaws.com/{file_name}"
+            "s3_url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file_name}"
         })
         
         return {
             "message": "Video uploaded successfully",
             "filename": file.filename,
-            "url": f"https://adib-source-bucket.s3.amazonaws.com/{file.filename}"
+            "url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file.filename}"
         }
         
     except Exception as e:
