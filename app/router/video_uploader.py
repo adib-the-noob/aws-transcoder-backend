@@ -1,4 +1,3 @@
-import os
 import uuid
 
 from fastapi import APIRouter, Depends, status, File, UploadFile
@@ -9,6 +8,8 @@ from utils.auth_utils import get_current_user
 from aws.s3_uploader import s3_client
 
 from schemas.video_schema import UploadVideoModel
+from bson import ObjectId 
+
 
 router = APIRouter(
     prefix="/videos",
@@ -35,8 +36,10 @@ async def upload_video_on_s3(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "Invalid channel"}
         )
-        
+    
+    file_uuid = str(uuid.uuid4())
     video_info = {
+        "video_uuid": file_uuid,
         "title": video.title,
         "description": video.description,
         "channel_id": video.channel_id,
@@ -47,7 +50,7 @@ async def upload_video_on_s3(
     
     try:
         file = video.video_file
-        file_name = f"{uuid.uuid4()}__{file.filename}"
+        file_name = f"{file_uuid}__{file.filename}"
         response = s3_client.create_multipart_upload(
             Bucket='transcoder-raw-bucket',
             Key=file_name,
@@ -86,6 +89,25 @@ async def upload_video_on_s3(
             }
         )
         
+        # video data update
+        update_query = {
+            "video_uuid": file_uuid
+        }
+        
+        updated_data = {
+            "$set": {
+                "upload_status": "uploaded",
+                "raw_video": {
+                    "file_name": file_name,
+                    "key": file_name,
+                    "s3_url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file_name}",
+                    "content_type": file.content_type,
+                }                    
+            }
+        }
+        
+        db_dependency = db_dependency.videos.update_one(update_query, updated_data)
+        
         video_info.update({
             'file_name': file_name,
             "s3_url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file_name}"
@@ -103,3 +125,41 @@ async def upload_video_on_s3(
             "message": "An error occured",
             "error": str(e)
         }
+        
+        
+@router.get("/get-video-info/{video_uuid}", response_model=None)
+def get_video_info(video_uuid: str):
+    video_info = db_dependency.videos.find_one(
+        {
+            "video_uuid": video_uuid
+        }
+    )
+   
+    if not video_info:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "Video not found"}
+        )
+            
+    video_info['_id'] = str(video_info['_id'])
+    video_info['channel_id'] = str(video_info['channel_id'])
+    video_info['owner_id'] = str(video_info['owner_id'])
+    
+    return video_info
+
+
+@router.get("/get-videos/{channel_id}", response_model=None)
+async def get_videos(channel_id: str):
+    videos = db_dependency.videos.find(
+        {
+            "channel_id": channel_id
+        },
+    )
+    
+    video_list = []
+    for video in videos:
+        video['_id'] = str(video['_id'])
+        video['channel_id'] = str(video['channel_id'])
+        video['owner_id'] = str(video['owner_id'])
+        video_list.append(video)
+    return video_list
