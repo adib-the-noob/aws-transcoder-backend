@@ -1,3 +1,1 @@
-# transcoder-backend--app
-# aws-transcoder-backend
-# aws-transcoder-backend
+# Backend of Transcoder application.

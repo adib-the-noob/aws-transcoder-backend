@@ -1,14 +1,19 @@
 from pymongo import MongoClient
+from fastapi import Depends
 
 db_dependency = MongoClient(
     "mongodb://root:root@localhost:27017"
 )
 
-db_dependency = db_dependency['transcoder_app_db']
+def get_db_dependency():
+    return db_dependency['transcoder_app_db']
+
+db_dependency : Depends = get_db_dependency()
 
 # channel index
 db_dependency.channels.create_index("owner_id")
 
+# video index
 db_dependency.videos.create_index('title')
 db_dependency.videos.create_index('description')
 db_dependency.videos.create_index('channel_id')

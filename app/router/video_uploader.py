@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, status, File, UploadFile
 from fastapi.responses import JSONResponse
 
-from db import db_dependency
+from db import db_dependency, get_db_dependency
 from utils.auth_utils import get_current_user
 from aws.s3_uploader import s3_client
 
@@ -16,12 +16,13 @@ router = APIRouter(
     tags=["videos"]
 )
 
+AWS_BUCKET_NAME = 'transcoder-raw-bucket'
 
 @router.post("/upload-video", response_model=None)
 async def upload_video_on_s3(
     video: UploadVideoModel = Depends(),
-    # file: UploadFile = File(...),
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user),
+    db_dependency = Depends(get_db_dependency),
 ):
     if not user:
         return JSONResponse(
@@ -31,7 +32,7 @@ async def upload_video_on_s3(
     
     channel_info = db_dependency.channels.find({"_id": video.channel_id, "owner_id": user['sub']})
   
-    if not channel_info:
+    if channel_info is None:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "Invalid channel"}
@@ -52,7 +53,7 @@ async def upload_video_on_s3(
         file = video.video_file
         file_name = f"{file_uuid}__{file.filename}"
         response = s3_client.create_multipart_upload(
-            Bucket='transcoder-raw-bucket',
+            Bucket=AWS_BUCKET_NAME,
             Key=file_name,
             ContentType=file.content_type
         )
@@ -68,7 +69,7 @@ async def upload_video_on_s3(
             if not chunk:
                 break
             part = s3_client.upload_part(
-                Bucket='transcoder-raw-bucket',
+                Bucket=AWS_BUCKET_NAME,
                 Key=file_name,
                 PartNumber=part_number,
                 UploadId=upload_id,
@@ -81,7 +82,7 @@ async def upload_video_on_s3(
             part_number += 1    
             
         s3_client.complete_multipart_upload(
-            Bucket='transcoder-raw-bucket',
+            Bucket=AWS_BUCKET_NAME,
             Key=file_name,
             UploadId=upload_id,
             MultipartUpload={
@@ -100,7 +101,7 @@ async def upload_video_on_s3(
                 "raw_video": {
                     "file_name": file_name,
                     "key": file_name,
-                    "s3_url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file_name}",
+                    "s3_url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file_name}",
                     "content_type": file.content_type,
                 }                    
             }
@@ -110,13 +111,13 @@ async def upload_video_on_s3(
         
         video_info.update({
             'file_name': file_name,
-            "s3_url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file_name}"
+            "s3_url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file_name}"
         })
         
         return {
             "message": "Video uploaded successfully",
             "filename": file.filename,
-            "url": f"https://transcoder-raw-bucket.s3.amazonaws.com/{file.filename}"
+            "url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file.filename}"
         }
         
     except Exception as e:
