@@ -5,13 +5,13 @@ services:
     container_name: transcoder_backend_app
     command: uvicorn app:app --reload --host "0.0.0.0" --port 8000
     ports:
-      - "8000:8000"
+      - 8000:8000  # Bind to all network interfaces
     environment:
-      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_URI=mongodb://root:root@transcoder_backend_db:27017
 
 
   transcoder_backend_db:
-    image: mongo:6.0
+    image: mongo:5.0
     container_name: transcoder_backend_db
     ports:
       - "27017:27017"
