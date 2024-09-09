@@ -29,6 +29,7 @@ async def search_video(query: str = Query(None, description="Search query for ti
     serialized_results = [
         {
             "id": str(result["_id"]),
+            "video_uuid": str(result["video_uuid"]) if result["video_uuid"] else None,
             "title": result["title"],
             "description": result["description"],
             "channel_id": result["channel_id"],
