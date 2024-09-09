@@ -14,9 +14,14 @@ db_dependency : Depends = get_db_dependency()
 db_dependency.channels.create_index("owner_id")
 
 # video index
-db_dependency.videos.create_index('title')
+db_dependency.videos.create_index([
+    ('title', 'text'),
+    ('description', 'text')
+])
+
 db_dependency.videos.create_index('description')
 db_dependency.videos.create_index('channel_id')
 db_dependency.videos.create_index('owner_id')
 db_dependency.videos.create_index('visibility')
-db_dependency.videos.create_index('video_uuid')
+# db_dependency.videos.drop_index('video_uuid_1')
+db_dependency.videos.create_index('video_uuid', unique=True)    
