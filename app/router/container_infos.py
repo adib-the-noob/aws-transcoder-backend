@@ -12,16 +12,17 @@ router = APIRouter(
 
 @router.post("/add-task-info")
 async def add_task_info(
-    task_info: ContainerInfo,
+    create_task_info: ContainerInfo,
 ):
     try:
         public_ip = get_public_ip_of_task(
-            task_arn=task_info.ecs_task_info.task_arn,
-            cluster_name=task_info.ecs_task_info.cluster_name,
+            task_arn=create_task_info.task_arn,
+            cluster_name=create_task_info.cluster_name,
         )
         inserted_task_info = db_dependency.container_infos.insert_one({
-            "video_uuid": task_info.video_uuid,
-            "ecs_task_info": task_info.ecs_task_info,
+            "video_uuid": create_task_info.video_uuid,
+            "task_arn": create_task_info.task_arn,
+            "cluster_name": create_task_info.cluster_name,
             "public_ip": public_ip
         })
         return JSONResponse(
