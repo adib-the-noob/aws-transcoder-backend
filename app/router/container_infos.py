@@ -24,7 +24,6 @@ async def add_task_info(
             "task_id": create_task_info.task_id
         })
         
-        time.sleep(10)
         
         public_ip = get_task_public_ip(
             task_arn=create_task_info.task_arn,
