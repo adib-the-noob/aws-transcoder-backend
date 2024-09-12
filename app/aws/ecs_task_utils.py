@@ -1,3 +1,4 @@
+import time
 import boto3
 
 from dotenv import load_dotenv
@@ -14,6 +15,7 @@ def get_task_public_ip(cluster_name, task_arn):
     ec2_client = boto3.client('ec2', region_name='ap-south-1')
 
     try:
+        time.sleep(5)
         # Describe the task
         response = ecs_client.describe_tasks(
             cluster=cluster_name,
