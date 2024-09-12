@@ -15,20 +15,24 @@ async def add_task_info(
     task_info: ContainerInfo,
 ):
     try:
-        # public_ip = get_public_ip_of_task(task_info.ecs_task_info)
+        public_ip = get_public_ip_of_task(
+            task_arn=task_info.ecs_task_info.task_arn,
+            cluster_name=task_info.ecs_task_info.cluster_name,
+        )
         inserted_task_info = db_dependency.container_infos.insert_one({
             "video_uuid": task_info.video_uuid,
             "ecs_task_info": task_info.ecs_task_info,
+            "public_ip": public_ip
         })
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
                 "video_uuid": task_info.video_uuid,
                 "task_id": str(inserted_task_info.inserted_id),
-                "task_info": task_info.ecs_task_info
+                "task_info": task_info.ecs_task_info,
+                "public_ip": public_ip
             }
         )
-        print(task_info.ecs_task_info)
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
