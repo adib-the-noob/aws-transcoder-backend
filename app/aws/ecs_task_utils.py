@@ -3,60 +3,55 @@ import boto3
 from dotenv import load_dotenv
 load_dotenv()
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-def get_public_ip_of_task(task_arn, cluster_name):
+
+def get_task_public_ip(cluster_name, task_arn):
+    # Initialize ECS and EC2 clients
     ecs_client = boto3.client('ecs', region_name='ap-south-1')
     ec2_client = boto3.client('ec2', region_name='ap-south-1')
 
     try:
-        task_and_cluster_arn = extract_task_and_cluster_arn(task_arn, cluster_name)
-        # Step 1: Describe the ECS task to get network interface ID
+        # Describe the task
         response = ecs_client.describe_tasks(
-            cluster=task_and_cluster_arn['clusterArn'],
-            tasks=[task_and_cluster_arn['taskArn']]
-        )
-        
-        tasks = response.get('tasks', [])
-        if not tasks:
-            return {'error': 'Task not found'}
-        
-        # Step 2: Extract network interface ID from the task
-        network_interfaces = tasks[0].get('containers', [])[0].get('networkInterfaces', [])
-        if not network_interfaces:
-            return {'error': 'No network interfaces found for the task'}
-        
-        network_interface_id = network_interfaces[0].get('networkInterfaceId')
-
-        # Step 3: Describe the network interface using EC2 client
-        network_interface_response = ec2_client.describe_network_interfaces(
-            NetworkInterfaceIds=[network_interface_id]
+            cluster=cluster_name,
+            tasks=[task_arn]
         )
 
-        # Step 4: Get the public IP address from the network interface details
-        network_interface = network_interface_response.get('NetworkInterfaces', [])[0]
-        public_ip = network_interface.get('Association', {}).get('PublicIp')
+        # Check if any task is returned
+        if not response['tasks']:
+            logger.error("No tasks found")
+            return None
 
-        if public_ip:
-            return {'public_ip': public_ip}
-        else:
-            return {'error': 'No public IP found for the network interface'}
+        # Extract the ENI (Elastic Network Interface) ID from the task details
+        attachments = response['tasks'][0].get('attachments', [])
+        if not attachments:
+            logger.error("No ENI attachment found for the task")
+            return None
+
+        # Extract ENI ID from the attachments
+        eni_id = None
+        for detail in attachments[0].get('details', []):
+            if detail.get('name') == 'networkInterfaceId':
+                eni_id = detail.get('value')
+                break
+
+        if not eni_id:
+            logger.error("ENI ID not found in task details")
+            return None
+
+        # Describe the network interface using EC2 client
+        network_interface = ec2_client.describe_network_interfaces(
+            NetworkInterfaceIds=[eni_id]
+        )
+
+        # Get the public IP from the network interface
+        public_ip = network_interface['NetworkInterfaces'][0].get('Association', {}).get('PublicIp', 'No public IP assigned')
+
+        return public_ip
 
     except Exception as e:
-        return {'error': str(e)}
-
-
-def extract_task_and_cluster_arn(response):
-    # Parse the response to get task details
-    tasks = response.get('tasks', [])
-    
-    if not tasks:
-        return {'error': 'No tasks found in the response'}
-    
-    task = tasks[0]  # Assuming you want to extract from the first task in the list
-    task_arn = task.get('taskArn')
-    cluster_arn = task.get('clusterArn')
-    
-    return {
-        'taskArn': task_arn,
-        'clusterArn': cluster_arn
-    }
+        logger.error(f"Error while fetching public IP: {str(e)}")
+        return None
