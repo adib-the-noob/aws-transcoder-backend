@@ -4,6 +4,9 @@ import boto3
 from dotenv import load_dotenv
 load_dotenv()
 
+from db import db_dependency
+from bson import ObjectId
+
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -57,3 +60,24 @@ def get_task_public_ip(cluster_name, task_arn):
     except Exception as e:
         logger.error(f"Error while fetching public IP: {str(e)}")
         return None
+    
+    
+def update_task_public_ip(
+    id: str,
+    task_arn: str,
+    cluster_name: str
+):
+    try:
+        public_ip = get_task_public_ip(
+            task_arn=task_arn,
+            cluster_name=cluster_name
+        )
+        
+        if public_ip:
+            db_dependency.container_infos.update_one(
+                {"_id": ObjectId(id)},
+                {"$set": {"public_ip": public_ip}}
+            )
+    except Exception as e:
+        logger.error(f"Error while updating task public IP: {str(e)}")
+        raise e
