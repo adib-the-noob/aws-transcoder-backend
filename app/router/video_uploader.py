@@ -128,23 +128,38 @@ async def upload_video_on_s3(
         }
         
         
-@router.get("/get-video-info/{video_uuid}", response_model=None)
-def get_video_info(video_uuid: str):
+@router.get("/get-video-info/{id}", response_model=None)
+def get_video_info(id: str):
+    
     video_info = db_dependency.videos.find_one(
         {
-            "video_uuid": video_uuid
+            "_id": ObjectId(id)
         }
     )
-   
+    
     if not video_info:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "Video not found"}
         )
-            
+    
+    # retrieve video container info using video_uuid
+    container_info = db_dependency.container_infos.find_one(
+        {
+            "video_uuid": video_info["video_uuid"]
+        }
+    )
+    
+    container_info['_id'] = str(container_info['_id'])
+    container_info['video_uuid'] = str(container_info['video_uuid'])
+    container_info['task_arn'] = str(container_info['task_arn'])
+    container_info['cluster_name'] = str(container_info['cluster_name'])
+    container_info['public_ip'] = str(container_info['public_ip'])
+    
     video_info['_id'] = str(video_info['_id'])
     video_info['channel_id'] = str(video_info['channel_id'])
     video_info['owner_id'] = str(video_info['owner_id'])
+    video_info['container_info'] = container_info
     
     return video_info
 
@@ -153,7 +168,8 @@ def get_video_info(video_uuid: str):
 async def get_videos(channel_id: str):
     videos = db_dependency.videos.find(
         {
-            "channel_id": channel_id
+            "channel_id": channel_id,
+            "visibility": "public"
         },
     )
     

@@ -53,11 +53,11 @@ async def add_task_info(
         
 @router.get("/get-task-info")
 async def get_task_info(
-    id: str = Query(..., alias="video_uuid")
+    uuid: str = Query(..., alias="video_uuid")
 ):
     try:
         task_info = db_dependency.container_infos.find_one({
-            "_id": ObjectId(id)
+            "video_uuid": uuid
         })
         if task_info is None:
             raise HTTPException(
@@ -66,7 +66,14 @@ async def get_task_info(
             )
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=task_info
+            content={
+                "id": str(task_info["_id"]),
+                "video_uuid": task_info["video_uuid"],
+                "file_key": task_info["file_key"],
+                "task_arn": task_info["task_arn"],
+                "cluster_name": task_info["cluster_name"],
+                "public_ip": task_info["public_ip"]
+            }
         )
     except Exception as e:
         return JSONResponse(
