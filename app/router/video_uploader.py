@@ -22,7 +22,7 @@ AWS_BUCKET_NAME = 'transcoder-raw-bucket'
 async def upload_video_on_s3(
     video: UploadVideoModel = Depends(),
     user: dict = Depends(get_current_user),
-    db_dependency = Depends(get_db_dependency),
+    # db_dependency = Depends(get_db_dependency),
 ):
     if not user:
         return JSONResponse(
@@ -47,6 +47,7 @@ async def upload_video_on_s3(
         "visibility": video.visibility,
         "owner_id": user['sub']
     }
+    
     db_dependency.videos.insert_one(video_info)
     
     try:
@@ -107,7 +108,7 @@ async def upload_video_on_s3(
             }
         }
         
-        db_dependency = db_dependency.videos.update_one(update_query, updated_data)
+        db_dependency.videos.update_one(update_query, updated_data)
         
         video_info.update({
             'file_name': file_name,
