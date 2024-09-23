@@ -5,6 +5,10 @@ class UserRegisterSchema(BaseModel):
     email: str = Field(...)
     password: str = Field(...)
     
+class UserInDb(UserRegisterSchema):
+    id : str = Field(...)
+    hashed_password: str = Field(...)
+    
 
 class UserLogin(BaseModel):
     email : str = Field(...)
