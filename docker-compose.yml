@@ -6,20 +6,20 @@ services:
     command: uvicorn app:app --reload --host "0.0.0.0" --port 8000
     ports:
       - 8000:8000  # Bind to all network interfaces
-    environment:
-      - MONGO_URI=mongodb://root:root@transcoder_backend_db:27017
-
+    volumes:
+      - ./app:/app  # Bind the app folder to the container
+    depends_on:
+      - transcoder_backend_db
+    env_file:
+      - app/.env
 
   transcoder_backend_db:
-    image: mongo:5.0
+    image: postgres:15
     container_name: transcoder_backend_db
     ports:
-      - "27017:27017"
+      - 5432:5432  # Bind to all network interfaces
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=root
-    volumes:
-      - mongo_data:/data/db
+      - POSTGRES_USER=transcoder-dev-db-user
+      - POSTGRES_PASSWORD=transcoder-dev-db-password
+      - POSTGRES_DB=transcoder-dev-db
 
-volumes:
-  mongo_data:

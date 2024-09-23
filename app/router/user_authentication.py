@@ -5,7 +5,8 @@ from typing import Annotated
 
 from schemas.user_auth_schema import (
     UserRegisterSchema,
-    UserLogin
+    UserLogin,
+    UserInDb
 )
 from utils.auth_utils import (
     get_password_hash,
@@ -13,8 +14,8 @@ from utils.auth_utils import (
     create_access_token,
     get_current_user
 )
+from models.auth_models import User
 
-from bson import ObjectId
 from db import db_dependency
 
 router = APIRouter(
@@ -23,60 +24,62 @@ router = APIRouter(
 )
 
 @router.post("/register", response_model=None)
-async def register_user(user: UserRegisterSchema):
-    user_in_db = db_dependency.users.find_one({"email": user.email})
-    if user_in_db:
-        return JSONResponse(
+async def register_user(
+    user: UserRegisterSchema,
+    db : db_dependency
+):
+    email = db.query(User).filter(User.email == user.email).first()
+    if email:
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": "User already exists"}
+            detail="Email already registered"
         )
-        
-    user.password = get_password_hash(user.password)
-    _ = db_dependency.users.insert_one(user.model_dump())
-    user_info = db_dependency.users.find_one({"email": user.email})
-    
-    # print(user_info)
-    return JSONResponse({
-        'message': 'User registered successfully',
-        'data' : {
-            'id' : str(user_info['_id']),
-            'full_name': user_info['full_name'],
-            'email': user_info['email']
-            }
-        }
+    new_user = User(
+        email=user.email,
+        password=get_password_hash(user.password)
     )
-    
+    new_user.save(db)
+    return JSONResponse({
+        "id": new_user.id,
+        "email": new_user.email,
+        "full_name": new_user.full_name
+    }, status_code=status.HTTP_201_CREATED)
+
 
 @router.get("/me", response_model=None)
-async def get_me(current_user = Depends(get_current_user)):
-    return JSONResponse(
-        {
-            'message': 'User info fetched successfully',
-            'data': {
-                'id': current_user['sub'],
-                'email': current_user['email']
-            }
-        }
-    )
+async def get_me(db : db_dependency, current_user = Depends(get_current_user)):
+    user = db.query(User).filter(User.id == current_user['sub']).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return JSONResponse({
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name
+    }, status_code=status.HTTP_200_OK)
     
     
 @router.post("/token", response_model=None)
 async def get_token(
+    db : db_dependency,
     form_data : Annotated[OAuth2PasswordRequestForm, None] = Depends()
 ):
     user = authenticate_user(
+        db,
         form_data.username,
         form_data.password
     )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={
-        'sub': str(user['_id']),
-        'email': user['email']
+        'sub': user.id,
+        'email': user.email
     })
     return JSONResponse(
         access_token,

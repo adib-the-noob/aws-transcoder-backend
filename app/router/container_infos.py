@@ -9,7 +9,7 @@ from aws.ecs_task_utils import (
     update_task_public_ip
 )
 
-from bson import ObjectId
+# from bson import ObjectId
 
 router = APIRouter(
     prefix="/container_infos",

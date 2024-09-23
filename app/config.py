@@ -5,4 +5,6 @@ class BaseConfig:
     ALGORITHM="HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES=120
     
+    DATABASE_URL = "postgresql://transcoder-dev-db-user:transcoder-dev-db-password@localhost:5432/transcoder-dev-db"
+    
 base_config = BaseConfig()

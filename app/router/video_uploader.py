@@ -3,12 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, status, File, UploadFile
 from fastapi.responses import JSONResponse
 
-from db import db_dependency, get_db_dependency
+from db import db_dependency
 from utils.auth_utils import get_current_user
 from aws.s3_uploader import s3_client
 
 from schemas.video_schema import UploadVideoModel
-from bson import ObjectId 
+# from bson import ObjectId 
 
 
 router = APIRouter(

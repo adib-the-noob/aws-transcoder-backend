@@ -1,27 +1,29 @@
-from pymongo import MongoClient
 from fastapi import Depends
+from typing import Annotated
 
-db_dependency = MongoClient(
-    "mongodb://root:root@localhost:27017"
-)
+import os
 
-def get_db_dependency():
-    return db_dependency['transcoder_app_db']
+from dotenv import load_dotenv
+load_dotenv()
 
-db_dependency : Depends = get_db_dependency()
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 
-# channel index
-db_dependency.channels.create_index("owner_id")
+from config import base_config
 
-# video index
-db_dependency.videos.create_index([
-    ('title', 'text'),
-    ('description', 'text')
-])
+engine = create_engine(base_config.DATABASE_URL)
 
-db_dependency.videos.create_index('description')
-db_dependency.videos.create_index('channel_id')
-db_dependency.videos.create_index('owner_id')
-db_dependency.videos.create_index('visibility')
-# db_dependency.videos.drop_index('video_uuid_1')
-db_dependency.videos.create_index('video_uuid', unique=True)    
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        
+    
+db_dependency = Annotated[Session, Depends(get_db)]

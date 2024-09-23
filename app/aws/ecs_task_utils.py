@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from db import db_dependency
-from bson import ObjectId
+# from bson import ObjectId
 
 import logging
 logger = logging.getLogger(__name__)
