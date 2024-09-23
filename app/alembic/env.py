@@ -19,7 +19,11 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 
-from models import Base
+from models.auth_models import User
+from models.channel_models import Channel
+from models.video_models import Video
+from db import Base
+ 
 
 target_metadata = Base.metadata
 
