@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Relationship
-
+from sqlalchemy.sql.schema import ForeignKey
 
 from db import Base
 from .baseModelMixin import BaseModelMixin
@@ -10,8 +10,11 @@ class User(BaseModelMixin, Base):
 
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String)
-    email = Column(String, unique=True, index=True)
+    email = Column(String, unique=True)
     password = Column(String)
+
+    channels = Relationship("Channel", back_populates="owner")
+
 
     def __repr__(self):
         return f"<User - {self.email}>"

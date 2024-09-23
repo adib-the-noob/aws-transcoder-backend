@@ -1,8 +1,8 @@
-"""create userstables
+"""video model and channel added
 
-Revision ID: e54a3450ad15
+Revision ID: 8adb83363d41
 Revises: 
-Create Date: 2024-09-23 23:06:47.676326
+Create Date: 2024-09-24 03:28:07.543393
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e54a3450ad15'
+revision: str = '8adb83363d41'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

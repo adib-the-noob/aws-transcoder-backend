@@ -35,6 +35,7 @@ async def register_user(
             detail="Email already registered"
         )
     new_user = User(
+        full_name=user.full_name,
         email=user.email,
         password=get_password_hash(user.password)
     )
