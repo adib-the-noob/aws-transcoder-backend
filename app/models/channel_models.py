@@ -5,9 +5,10 @@ from sqlalchemy.sql.schema import ForeignKey
 from db import Base
 from .baseModelMixin import BaseModelMixin
 
-class Channel(BaseModelMixin, Base):
+class Channel(Base, BaseModelMixin):
     __tablename__ = "channels"
     
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String)
     

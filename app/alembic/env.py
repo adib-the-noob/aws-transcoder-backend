@@ -22,6 +22,8 @@ if config.config_file_name is not None:
 from models.auth_models import User
 from models.channel_models import Channel
 from models.video_models import Video
+from models.container_models import Container
+
 from db import Base
  
 

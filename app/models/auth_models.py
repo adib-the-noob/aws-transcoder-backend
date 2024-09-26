@@ -5,7 +5,7 @@ from sqlalchemy.sql.schema import ForeignKey
 from db import Base
 from .baseModelMixin import BaseModelMixin
 
-class User(BaseModelMixin, Base):
+class User(Base, BaseModelMixin):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

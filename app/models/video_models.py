@@ -17,13 +17,16 @@ class VideoVisibility(PyEnum):
     PRIVATE = "private"
     UNLISTED = "unlisted"
     
-class Video(BaseModelMixin, Base):
+class Video(Base, BaseModelMixin):
     __tablename__ = "videos"
 
+    id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String)
     s3_key = Column(String)
+    bucket_name = Column(String)
     
+    thumbnail = Column(String)
     transcoding_status = Column(Enum(TranscodingStatus), default=TranscodingStatus.PENDING)
     visibility = Column(Enum(VideoVisibility), default=VideoVisibility.PUBLIC)
     
