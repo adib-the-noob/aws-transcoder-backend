@@ -8,8 +8,9 @@ from aws.ecs_task_utils import (
     get_task_public_ip,
     update_task_public_ip
 )
+from models.container_models import Container
+from models.video_models import Video
 
-# from bson import ObjectId
 
 router = APIRouter(
     prefix="/container_infos",
@@ -19,27 +20,33 @@ router = APIRouter(
 @router.post("/add-task-info")
 async def add_task_info(
     create_task_info: ContainerInfo,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    db: db_dependency
 ):
     try:
-        inserted_task_info = db_dependency.container_infos.insert_one({
-            "video_uuid": create_task_info.video_uuid,
-            "file_key": create_task_info.file_key,
-            "task_arn": create_task_info.task_arn,
-            "cluster_name": create_task_info.cluster_name,
-        })
+        video = db.query(Video).filter(Video.video_uuid == create_task_info.video_uuid).first()  
+        
+        if video is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Video not found"
+            )
+        
+        container = Container(
+            tag=create_task_info.video_uuid,
+            arn=create_task_info.task_arn,        )
+        container.save(db)
         
         background_tasks.add_task(
             update_task_public_ip,
-            inserted_task_info.inserted_id,
             create_task_info.task_arn,
-            create_task_info.cluster_name
+            create_task_info.cluster_name,
+            db
          )
         
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
-                "id": str(inserted_task_info.inserted_id),
                 "video_uuid": create_task_info.video_uuid,
             }
         )

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from db import db_dependency
-# from bson import ObjectId
+from models.container_models import Container
 
 import logging
 logger = logging.getLogger(__name__)
@@ -63,9 +63,9 @@ def get_task_public_ip(cluster_name, task_arn):
     
     
 def update_task_public_ip(
-    id: str,
     task_arn: str,
-    cluster_name: str
+    cluster_name: str,
+    db : db_dependency
 ):
     try:
         public_ip = get_task_public_ip(
@@ -74,10 +74,13 @@ def update_task_public_ip(
         )
         
         if public_ip:
-            db_dependency.container_infos.update_one(
-                {"_id": ObjectId(id)},
-                {"$set": {"public_ip": public_ip}}
-            )
+            container_data = db.query(Container).filter(Container.arn == task_arn).first()
+            container_data.public_ip = public_ip
+            container_data.save(db)
+            return True
+        return False
+        
     except Exception as e:
         logger.error(f"Error while updating task public IP: {str(e)}")
-        raise e
+        return False
+    

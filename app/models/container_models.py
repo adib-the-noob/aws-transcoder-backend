@@ -9,7 +9,7 @@ class Container(Base, BaseModelMixin):
     __tablename__ = "containers"
     
     id = Column(Integer, primary_key=True, index=True) 
-    name = Column(String, index=True)
+    arn = Column(String, index=True)
     tag = Column(String)
     public_ip = Column(String)
     port = Column(Integer)

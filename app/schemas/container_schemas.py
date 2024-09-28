@@ -5,3 +5,4 @@ class ContainerInfo(BaseModel):
     task_arn: str
     cluster_name: str
     file_key: str
+    
