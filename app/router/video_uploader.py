@@ -25,6 +25,7 @@ async def upload_video_on_s3(
     video: UploadVideoModel = Depends(),
     user: dict = Depends(get_current_user),
 ):
+    # Fetch the user from the database
     user = db.query(User).filter(User.id == user['sub']).first()
     if not user:
         return JSONResponse(
@@ -32,28 +33,41 @@ async def upload_video_on_s3(
             content={"message": "User not found"}
         )
     
+    # Generate a unique file UUID for the video file
     file_uuid = str(uuid.uuid4())
 
-    
+    # Fetch the user's channel information
+    channel_info = db.query(Channel).filter(Channel.owner_id == user.id).first()
+    if not channel_info:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "Channel not found"}
+        )
+
     try:
+        # Get the uploaded file object and generate the S3 key (file name)
         file = video.video_file
         file_name = f"{file_uuid}__{file.filename}"
+        
+        # Initiate multipart upload to S3
         response = s3_client.create_multipart_upload(
             Bucket=AWS_BUCKET_NAME,
             Key=file_name,
-            ContentType=file.content_type
+            ContentType=file.content_type  # Use content type of uploaded file
         )
-
         upload_id = response['UploadId']
         
         parts = []
         part_number = 1
-        chunk_size = 5 * 1024 * 1024
+        chunk_size = 5 * 1024 * 1024  # 5 MB chunk size
         
+        # Read and upload the file in chunks to S3
         while True:
             chunk = await file.read(chunk_size)
             if not chunk:
                 break
+
+            # Upload each part of the file
             part = s3_client.upload_part(
                 Bucket=AWS_BUCKET_NAME,
                 Key=file_name,
@@ -63,106 +77,43 @@ async def upload_video_on_s3(
             )
             parts.append({
                 'PartNumber': part_number,
-                'ETag': part['ETag'] # Etage is a unique identifier for the part
+                'ETag': part['ETag']  # Store the ETag for each part
             })
-            part_number += 1    
-            
+            part_number += 1
+        
+        # Complete the multipart upload once all parts are uploaded
         s3_client.complete_multipart_upload(
             Bucket=AWS_BUCKET_NAME,
             Key=file_name,
             UploadId=upload_id,
-            MultipartUpload={
-                'Parts': parts
-            }
+            MultipartUpload={'Parts': parts}
         )
         
-        # video data update
-        update_query = {
-            "video_uuid": file_uuid
-        }
-        
-        updated_data = {
-            "$set": {
-                "upload_status": "uploaded",
-                "raw_video": {
-                    "file_name": file_name,
-                    "key": file_name,
-                    "s3_url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file_name}",
-                    "content_type": file.content_type,
-                }                    
-            }
-        }
-        
-        db_dependency.videos.update_one(update_query, updated_data)
-        
-        video_info.update({
-            'file_name': file_name,
-            "s3_url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file_name}"
-        })
-        
-        return {
-            "message": "Video uploaded successfully",
-            "filename": file.filename,
-            "url": f"https://{AWS_BUCKET_NAME}.s3.amazonaws.com/{file.filename}"
-        }
+        # Check if the video record exists in the database, update or create accordingly
+        video_data = Video(
+            video_uuid=file_uuid,
+            title=video.title,
+            description=video.description,
+            visibility=video.visibility.value,
+            channel_id=channel_info.id,
+            s3_key=file_name,
+            bucket_name=AWS_BUCKET_NAME,
+        )
+        video_data.save(db)
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content={"message": "Video uploaded successfully"}
+        )
         
     except Exception as e:
-        print(e)
-        return {
-            "message": "An error occured",
-            "error": str(e)
-        }
-        
-        
-@router.get("/get-video-info/{id}", response_model=None)
-def get_video_info(id: str):
-    
-    video_info = db_dependency.videos.find_one(
-        {
-            "_id": ObjectId(id)
-        }
-    )
-    
-    if not video_info:
+        # Handle any errors, including aborting the multipart upload if necessary
+        if 'upload_id' in locals():
+            s3_client.abort_multipart_upload(
+                Bucket=AWS_BUCKET_NAME,
+                Key=file_name,
+                UploadId=upload_id
+            )
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"message": "Video not found"}
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "An error occurred during upload", "error": str(e)}
         )
-    
-    # retrieve video container info using video_uuid
-    container_info = db_dependency.container_infos.find_one(
-        {
-            "video_uuid": video_info["video_uuid"]
-        }
-    )
-    
-    container_info['_id'] = str(container_info['_id'])
-    container_info['video_uuid'] = str(container_info['video_uuid'])
-    container_info['task_arn'] = str(container_info['task_arn'])
-    container_info['cluster_name'] = str(container_info['cluster_name'])
-    container_info['public_ip'] = str(container_info['public_ip'])
-    
-    video_info['_id'] = str(video_info['_id'])
-    video_info['channel_id'] = str(video_info['channel_id'])
-    video_info['owner_id'] = str(video_info['owner_id'])
-    video_info['container_info'] = container_info
-    
-    return video_info
-
-
-@router.get("/get-videos/{channel_id}", response_model=None)
-async def get_videos(channel_id: str):
-    videos = db_dependency.videos.find(
-        {
-            "channel_id": channel_id,
-            "visibility": "public"
-        },
-    )
-    
-    video_list = []
-    for video in videos:
-        video['_id'] = str(video['_id'])
-        video['channel_id'] = str(video['channel_id'])
-        video['owner_id'] = str(video['owner_id'])
-        video_list.append(video)
-    return video_list

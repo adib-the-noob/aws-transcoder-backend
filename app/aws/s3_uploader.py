@@ -6,6 +6,8 @@ load_dotenv(
     './.env'
 )
 
+BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+
 s3_client = boto3.client(
     "s3",
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),

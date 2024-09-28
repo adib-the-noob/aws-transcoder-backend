@@ -29,6 +29,4 @@ async def root():
 
 app.include_router(user_authentication.router)
 app.include_router(channels_create.router)
-# app.include_router(video_uploader.router)
-# app.include_router(video_info.router)
-# app.include_router(container_infos.router)
+app.include_router(video_uploader.router)

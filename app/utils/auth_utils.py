@@ -61,7 +61,7 @@ def decode_access_token(token: str):
     
 def get_current_user(
     token: str = Depends(oauth2_scheme)
-):
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

@@ -13,9 +13,9 @@ class TranscodingStatus(PyEnum):
     PUBLISHED = "published"
 
 class VideoVisibility(PyEnum):
-    PUBLIC = "public"
-    PRIVATE = "private"
-    UNLISTED = "unlisted"
+    PUBLIC = "PUBLIC"
+    PRIVATE = "PRIVATE"
+    UNLISTED = "UNLISTED"
     
 class Video(Base, BaseModelMixin):
     __tablename__ = "videos"
@@ -23,6 +23,7 @@ class Video(Base, BaseModelMixin):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String)
+    video_uuid = Column(String, index=True)
     s3_key = Column(String)
     bucket_name = Column(String)
     
