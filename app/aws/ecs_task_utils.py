@@ -6,10 +6,19 @@ load_dotenv()
 
 from db import db_dependency
 from models.container_models import Container
+from router.microservice_apis.start_transcoding import send_transcoding_request
 
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+import os 
+ecs = boto3.client(
+    'ecs',
+    region_name='ap-south-1',
+    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+)
 
 
 def get_task_public_ip(cluster_name, task_arn):
@@ -77,6 +86,12 @@ def update_task_public_ip(
             container_data = db.query(Container).filter(Container.arn == task_arn).first()
             container_data.public_ip = public_ip
             container_data.save(db)
+            
+            send_transcoding_request(
+                video_uuid=container_data.tag,
+                db=db
+            )
+            
             return True
         return False
         
